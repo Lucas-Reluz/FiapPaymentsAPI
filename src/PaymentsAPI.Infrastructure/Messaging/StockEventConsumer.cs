@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PaymentsAPI.Domain.Entities;
+using PaymentsAPI.Domain.Enums;
 using PaymentsAPI.Domain.Events;
 using PaymentsAPI.Domain.Interfaces;
 using RabbitMQ.Client;
@@ -70,21 +71,11 @@ public class StockEventConsumer : BackgroundService
 
                     _logger.LogInformation("Mensagem recebida do CatalogAPI: {Message}", message);
 
-                    // Tentar deserializar como StockReservedEvent
-                    try
-                    {
-                        var stockReservedEvent = JsonSerializer.Deserialize<StockReservedEvent>(message);
-                        if (stockReservedEvent != null && stockReservedEvent.OrderId != Guid.Empty)
-                        {
-                            await ProcessStockReservedEventAsync(stockReservedEvent);
-                            await _channel.BasicAckAsync(ea.DeliveryTag, false);
-                            return;
-                        }
-                    }
-                    catch { }
+                    using var jsonDocument = JsonDocument.Parse(message);
+                    var root = jsonDocument.RootElement;
 
-                    // Tentar deserializar como StockInsufficientEvent
-                    try
+                    if (root.TryGetProperty("RequestedQuantity", out _) ||
+                        root.TryGetProperty("AvailableStock", out _))
                     {
                         var stockInsufficientEvent = JsonSerializer.Deserialize<StockInsufficientEvent>(message);
                         if (stockInsufficientEvent != null && stockInsufficientEvent.OrderId != Guid.Empty)
@@ -94,7 +85,17 @@ public class StockEventConsumer : BackgroundService
                             return;
                         }
                     }
-                    catch { }
+
+                    if (root.TryGetProperty("Quantity", out _))
+                    {
+                        var stockReservedEvent = JsonSerializer.Deserialize<StockReservedEvent>(message);
+                        if (stockReservedEvent != null && stockReservedEvent.OrderId != Guid.Empty)
+                        {
+                            await ProcessStockReservedEventAsync(stockReservedEvent);
+                            await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                            return;
+                        }
+                    }
 
                     _logger.LogWarning("Mensagem não reconhecida: {Message}", message);
                     await _channel.BasicNackAsync(ea.DeliveryTag, false, false);
@@ -133,6 +134,13 @@ public class StockEventConsumer : BackgroundService
             return;
         }
 
+        if (order.Status != OrderStatus.Pending)
+        {
+            _logger.LogInformation("Ignorando evento de estoque repetido para pedido {OrderId} com status {Status}",
+                @event.OrderId, order.Status);
+            return;
+        }
+
         // Atualizar status do pedido para AwaitingPayment
         order.ConfirmStock();
         await orderRepository.UpdateAsync(order);
@@ -142,9 +150,8 @@ public class StockEventConsumer : BackgroundService
         // Criar pagamento automaticamente
         var payment = new Payment(order.Id, order.TotalPrice, "CreditCard");
         await paymentRepository.AddAsync(payment);
-        order.AddPayment(payment);
 
-       _logger.LogInformation("Pagamento {PaymentId} criado para pedido {OrderId}", payment.Id, order.Id);
+        _logger.LogInformation("Pagamento {PaymentId} criado para pedido {OrderId}", payment.Id, order.Id);
     }
 
     private async Task ProcessStockInsufficientEventAsync(StockInsufficientEvent @event)
@@ -160,6 +167,13 @@ public class StockEventConsumer : BackgroundService
         if (order == null)
         {
             _logger.LogWarning("Pedido {OrderId} não encontrado", @event.OrderId);
+            return;
+        }
+
+        if (order.Status != OrderStatus.Pending)
+        {
+            _logger.LogWarning("Ignorando cancelamento de estoque para pedido {OrderId} com status {Status}",
+                @event.OrderId, order.Status);
             return;
         }
 

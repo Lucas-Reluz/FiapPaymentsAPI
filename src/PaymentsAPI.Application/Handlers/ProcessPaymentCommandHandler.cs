@@ -10,18 +10,15 @@ namespace PaymentsAPI.Application.Handlers;
 public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentCommand, bool>
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IPaymentRepository _paymentRepository;
     private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<ProcessPaymentCommandHandler> _logger;
 
     public ProcessPaymentCommandHandler(
         IOrderRepository orderRepository,
-        IPaymentRepository paymentRepository,
         IEventPublisher eventPublisher,
         ILogger<ProcessPaymentCommandHandler> logger)
     {
         _orderRepository = orderRepository;
-        _paymentRepository = paymentRepository;
         _eventPublisher = eventPublisher;
         _logger = logger;
     }
@@ -44,20 +41,15 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
             return false;
         }
 
-        // Verificar se já existe pagamento para este pedido
-        var existingPayment = await _paymentRepository.GetByOrderIdAsync(order.Id);
-        if (existingPayment != null)
+        // Reutilizar o pagamento criado quando o estoque foi reservado
+        var payment = order.Payment ?? new Payment(order.Id, order.TotalPrice, request.PaymentMethod);
+
+        if (order.Payment == null)
         {
-            _logger.LogWarning("Pedido {OrderId} já possui pagamento {PaymentId}", order.Id, existingPayment.Id);
-            return false;
+            order.AddPayment(payment);
         }
 
-        // Criar pagamento
-        var payment = new Payment(order.Id, order.TotalPrice, request.PaymentMethod);
-        await _paymentRepository.AddAsync(payment);
-        order.AddPayment(payment);
-
-        _logger.LogInformation("Pagamento {PaymentId} criado para pedido {OrderId}", payment.Id, order.Id);
+        _logger.LogInformation("Pagamento {PaymentId} processado para pedido {OrderId}", payment.Id, order.Id);
 
         // Simular processamento de pagamento (80% de aprovação)
         var random = new Random();
@@ -68,7 +60,6 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
             // Pagamento aprovado
             payment.Complete();
             order.Confirm();
-            await _paymentRepository.UpdateAsync(payment);
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogInformation("Pagamento {PaymentId} aprovado para pedido {OrderId}", payment.Id, order.Id);
@@ -95,7 +86,6 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
             // Pagamento recusado
             payment.Fail("Pagamento recusado pela operadora");
             order.Cancel();
-            await _paymentRepository.UpdateAsync(payment);
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogWarning("Pagamento {PaymentId} recusado para pedido {OrderId}", payment.Id, order.Id);
