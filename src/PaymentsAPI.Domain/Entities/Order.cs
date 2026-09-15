@@ -14,14 +14,8 @@ public class Order
     public OrderStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
-
-    // Relacionamento 1:1 com Payment
     public Payment? Payment { get; private set; }
-
-    // Construtor privado para EF Core
     private Order() { }
-
-    // Construtor público para criar pedido
     public Order(Guid userId, Guid gameId, string gameTitle, int quantity, decimal unitPrice)
     {
         Id = Guid.NewGuid();
@@ -34,8 +28,6 @@ public class Order
         Status = OrderStatus.Pending;
         CreatedAt = DateTime.UtcNow;
     }
-
-    // Método chamado quando estoque é reservado com sucesso
     public void ConfirmStock()
     {
         if (Status != OrderStatus.Pending)
@@ -44,8 +36,6 @@ public class Order
         Status = OrderStatus.AwaitingPayment;
         UpdatedAt = DateTime.UtcNow;
     }
-
-    // Método chamado quando estoque é insuficiente ou pagamento falha
     public void Cancel()
     {
         if (Status == OrderStatus.Confirmed)
@@ -54,8 +44,6 @@ public class Order
         Status = OrderStatus.Cancelled;
         UpdatedAt = DateTime.UtcNow;
     }
-
-    // Método chamado quando pagamento é aprovado
     public void Confirm()
     {
         if (Status != OrderStatus.AwaitingPayment)
@@ -64,8 +52,6 @@ public class Order
         Status = OrderStatus.Confirmed;
         UpdatedAt = DateTime.UtcNow;
     }
-
-    // Método para adicionar pagamento
     public void AddPayment(Payment payment)
     {
         if (Payment != null)

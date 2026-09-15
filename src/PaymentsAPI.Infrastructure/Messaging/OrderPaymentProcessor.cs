@@ -49,14 +49,6 @@ public class OrderPaymentProcessor : BackgroundService
         var paymentRepository = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
         var eventPublisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
 
-        // Aqui você poderia buscar pedidos com status AwaitingPayment
-        // Por simplicidade, este processor processa pagamentos que já foram criados
-        // pelo StockEventConsumer e estão com status Processing
-
-        // Na implementação real, você faria uma query no banco buscando payments em Processing
-        // Para este exemplo, o processamento ocorre via Command explícito
-        // Este background service serve como fallback/retry para pagamentos que falharam
-
         _logger.LogDebug("Verificando pagamentos pendentes...");
     }
 

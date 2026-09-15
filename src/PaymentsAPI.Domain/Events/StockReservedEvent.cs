@@ -1,8 +1,4 @@
 namespace PaymentsAPI.Domain.Events;
-
-/// <summary>
-/// Evento consumido do CatalogAPI quando o estoque é reservado com sucesso
-/// </summary>
 public class StockReservedEvent
 {
     public Guid OrderId { get; set; }

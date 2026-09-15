@@ -1,9 +1,4 @@
 namespace PaymentsAPI.Domain.Events;
-
-/// <summary>
-/// Evento publicado quando o pedido é confirmado (pagamento aprovado)
-/// Consumido pelo NotificationsAPI
-/// </summary>
 public class OrderConfirmedEvent
 {
     public Guid OrderId { get; set; }

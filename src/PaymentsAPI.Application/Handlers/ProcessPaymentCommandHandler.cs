@@ -32,16 +32,12 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
             _logger.LogWarning("Pedido {OrderId} não encontrado para processar pagamento", request.OrderId);
             return false;
         }
-
-        // Verificar se o pedido está aguardando pagamento
         if (order.Status != Domain.Enums.OrderStatus.AwaitingPayment)
         {
             _logger.LogWarning("Pedido {OrderId} não está em status AwaitingPayment. Status atual: {Status}", 
                 order.Id, order.Status);
             return false;
         }
-
-        // Reutilizar o pagamento criado quando o estoque foi reservado
         var payment = order.Payment ?? new Payment(order.Id, order.TotalPrice, request.PaymentMethod);
 
         if (order.Payment == null)
@@ -50,21 +46,16 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
         }
 
         _logger.LogInformation("Pagamento {PaymentId} processado para pedido {OrderId}", payment.Id, order.Id);
-
-        // Simular processamento de pagamento (80% de aprovação)
         var random = new Random();
         var isApproved = random.Next(100) < 80;
 
         if (isApproved)
         {
-            // Pagamento aprovado
             payment.Complete();
             order.Confirm();
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogInformation("Pagamento {PaymentId} aprovado para pedido {OrderId}", payment.Id, order.Id);
-
-            // Publicar evento OrderConfirmedEvent
             var orderConfirmedEvent = new OrderConfirmedEvent
             {
                 OrderId = order.Id,
@@ -83,14 +74,11 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
         }
         else
         {
-            // Pagamento recusado
             payment.Fail("Pagamento recusado pela operadora");
             order.Cancel();
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogWarning("Pagamento {PaymentId} recusado para pedido {OrderId}", payment.Id, order.Id);
-
-            // Publicar evento OrderCancelledEvent
             var orderCancelledEvent = new OrderCancelledEvent
             {
                 OrderId = order.Id,

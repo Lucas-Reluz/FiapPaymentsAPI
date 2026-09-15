@@ -15,8 +15,6 @@ public class PaymentsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Configuração da entidade Order
         modelBuilder.Entity<Order>(entity =>
         {
             entity.ToTable("Orders");
@@ -52,20 +50,14 @@ public class PaymentsDbContext : DbContext
                 .IsRequired();
 
             entity.Property(o => o.UpdatedAt);
-
-            // Relacionamento 1:1 com Payment
             entity.HasOne(o => o.Payment)
                 .WithOne(p => p.Order)
                 .HasForeignKey<Payment>(p => p.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Índices
             entity.HasIndex(o => o.UserId);
             entity.HasIndex(o => o.Status);
             entity.HasIndex(o => o.CreatedAt);
         });
-
-        // Configuração da entidade Payment
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.ToTable("Payments");
@@ -94,8 +86,6 @@ public class PaymentsDbContext : DbContext
 
             entity.Property(p => p.FailureReason)
                 .HasMaxLength(500);
-
-            // Índice único no OrderId para garantir 1:1
             entity.HasIndex(p => p.OrderId)
                 .IsUnique();
         });

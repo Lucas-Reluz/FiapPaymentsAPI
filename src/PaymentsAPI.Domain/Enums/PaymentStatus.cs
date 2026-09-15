@@ -2,7 +2,7 @@ namespace PaymentsAPI.Domain.Enums;
 
 public enum PaymentStatus
 {
-    Processing = 0,    // Processando pagamento
-    Completed = 1,     // Pagamento aprovado
-    Failed = 2         // Pagamento recusado
+    Processing = 0,
+    Completed = 1,
+    Failed = 2
 }

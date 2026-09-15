@@ -19,10 +19,6 @@ public class OrdersController : ControllerBase
         _mediator = mediator;
         _logger = logger;
     }
-
-    /// <summary>
-    /// Criar novo pedido
-    /// </summary>
     [HttpPost]
     [Authorize]
     public async Task<ActionResult<OrderResponse>> CreateOrder([FromBody] CreateOrderRequest request)
@@ -46,10 +42,6 @@ public class OrdersController : ControllerBase
             return StatusCode(500, new { message = "Erro ao criar pedido" });
         }
     }
-
-    /// <summary>
-    /// Buscar pedido por ID
-    /// </summary>
     [HttpGet("{id:guid}")]
     [Authorize]
     public async Task<ActionResult<OrderResponse>> GetOrderById(Guid id)
@@ -70,10 +62,6 @@ public class OrdersController : ControllerBase
             return StatusCode(500, new { message = "Erro ao buscar pedido" });
         }
     }
-
-    /// <summary>
-    /// Listar pedidos do usuário
-    /// </summary>
     [HttpGet("user/{userId:guid}")]
     [Authorize]
     public async Task<ActionResult<OrdersListResponse>> GetUserOrders(
@@ -93,10 +81,6 @@ public class OrdersController : ControllerBase
             return StatusCode(500, new { message = "Erro ao listar pedidos" });
         }
     }
-
-    /// <summary>
-    /// Processar pagamento de um pedido
-    /// </summary>
     [HttpPost("{id:guid}/payment")]
     [Authorize]
     public async Task<ActionResult> ProcessPayment(Guid id, [FromBody] ProcessPaymentRequest request)

@@ -12,14 +12,8 @@ public class Payment
     public DateTime CreatedAt { get; private set; }
     public DateTime? ProcessedAt { get; private set; }
     public string? FailureReason { get; private set; }
-
-    // Navegação para Order
     public Order Order { get; private set; } = null!;
-
-    // Construtor privado para EF Core
     private Payment() { }
-
-    // Construtor público
     public Payment(Guid orderId, decimal amount, string paymentMethod)
     {
         Id = Guid.NewGuid();
@@ -29,8 +23,6 @@ public class Payment
         Status = PaymentStatus.Processing;
         CreatedAt = DateTime.UtcNow;
     }
-
-    // Método para completar pagamento
     public void Complete()
     {
         if (Status != PaymentStatus.Processing)
@@ -39,8 +31,6 @@ public class Payment
         Status = PaymentStatus.Completed;
         ProcessedAt = DateTime.UtcNow;
     }
-
-    // Método para falhar pagamento
     public void Fail(string reason)
     {
         if (Status != PaymentStatus.Processing)

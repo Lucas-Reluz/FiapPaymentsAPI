@@ -53,8 +53,6 @@ public class StockEventConsumer : BackgroundService
 
             _connection = await factory.CreateConnectionAsync();
             _channel = await _connection.CreateChannelAsync();
-
-            // Declarar exchange e fila
             await _channel.ExchangeDeclareAsync(exchangeName, ExchangeType.Fanout, true, false);
             await _channel.QueueDeclareAsync(queueName, true, false, false);
             await _channel.QueueBindAsync(queueName, exchangeName, string.Empty);
@@ -140,14 +138,10 @@ public class StockEventConsumer : BackgroundService
                 @event.OrderId, order.Status);
             return;
         }
-
-        // Atualizar status do pedido para AwaitingPayment
         order.ConfirmStock();
         await orderRepository.UpdateAsync(order);
 
         _logger.LogInformation("Pedido {OrderId} atualizado para AwaitingPayment", @event.OrderId);
-
-        // Criar pagamento automaticamente
         var payment = new Payment(order.Id, order.TotalPrice, "CreditCard");
         await paymentRepository.AddAsync(payment);
 
@@ -176,14 +170,10 @@ public class StockEventConsumer : BackgroundService
                 @event.OrderId, order.Status);
             return;
         }
-
-        // Cancelar pedido
         order.Cancel();
         await orderRepository.UpdateAsync(order);
 
         _logger.LogInformation("Pedido {OrderId} cancelado por estoque insuficiente", @event.OrderId);
-
-        // Publicar evento de cancelamento
         var orderCancelledEvent = new OrderCancelledEvent
         {
             OrderId = order.Id,

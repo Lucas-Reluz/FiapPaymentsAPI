@@ -36,15 +36,9 @@ public class RabbitMqPublisher : IEventPublisher
 
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
-
-        // Declarar exchange como fanout
         await channel.ExchangeDeclareAsync(exchange, ExchangeType.Fanout, durable: true, autoDelete: false);
-
-        // Serializar evento
         var message = JsonSerializer.Serialize(@event);
         var body = Encoding.UTF8.GetBytes(message);
-
-        // Publicar mensagem
         await channel.BasicPublishAsync(exchange, string.Empty, body);
 
         _logger.LogInformation("Evento {EventType} publicado com sucesso em {Exchange}", 

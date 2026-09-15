@@ -26,7 +26,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
 
     public async Task<OrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Criar pedido
         var order = new Order(
             request.UserId,
             request.GameId,
@@ -38,8 +37,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
         await _orderRepository.AddAsync(order);
 
         _logger.LogInformation("Pedido {OrderId} criado para usuário {UserId}", order.Id, order.UserId);
-
-        // Publicar evento OrderCreatedEvent para o CatalogAPI
         var orderCreatedEvent = new OrderCreatedEvent
         {
             OrderId = order.Id,
